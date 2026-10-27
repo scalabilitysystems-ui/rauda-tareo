@@ -1,0 +1,13 @@
+[Unit]
+Description=Limpieza de puntos GPS de Rauda (retención de 30 días)
+Documentation=file:///home/ubuntu/rauda/README.md
+
+[Service]
+Type=oneshot
+# Corre como `postgres`: es el dueño de las tablas y no necesita más permiso que ese.
+User=postgres
+# El SQL se instala en /etc/rauda: `postgres` no puede leer dentro de /home/ubuntu (750), y un
+# servicio que falla por permisos de archivo es exactamente el tipo de fallo que nadie mira.
+ExecStart=/usr/bin/psql -d rauda_dev -v ON_ERROR_STOP=1 -f /etc/rauda/limpieza_gps.sql
+StandardOutput=journal
+StandardError=journal

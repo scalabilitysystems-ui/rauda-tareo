@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block titulo %}Mi contraseña · Rauda{% endblock %}
+{% block contenido %}
+<section class="bloque angosto">
+  <h2>Mi contraseña</h2>
+  {% if listo %}
+  <div class="aviso-cerrado">
+    <strong>Listo.</strong> Tu contraseña quedó cambiada. La próxima vez entras con la nueva.
+  </div>
+  {% else %}
+  <p class="tenue">
+    Cámbiala cuando quieras. Si no sabes la actual, pídele a la administración un código nuevo.
+  </p>
+  <form method="post" action="/mi-clave" class="ficha">
+    <label><span>Contraseña actual</span>
+      <input name="actual" type="password" autocomplete="current-password" required></label>
+    <label><span>Contraseña nueva</span>
+      <input name="nueva" type="password" autocomplete="new-password" minlength="8" required></label>
+    <label><span>Repítela</span>
+      <input name="nueva2" type="password" autocomplete="new-password" minlength="8" required></label>
+    {% if error %}<div class="entrada-error">{{ error }}</div>{% endif %}
+    <button class="boton-secundario" type="submit">Cambiar contraseña</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

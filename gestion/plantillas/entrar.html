@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if modo == 'activar' %}Crear mi contraseña{% else %}Entrar{% endif %} · Rauda</title>
+  <link rel="stylesheet" href="/estatico/panel.css?v=6">
+</head>
+<body class="pantalla-entrada">
+  <div class="entrada">
+    <div class="entrada-marca">
+      <img class="logo-rauda" src="/estatico/logo-rauda-negro.svg" alt="Rauda" height="40">
+    </div>
+
+    {% if modo == 'activar' %}
+    <h1>Creá tu contraseña</h1>
+    <p class="entrada-ayuda">
+      Escribe el usuario y el código que te dio la administración, y elige una contraseña.
+      Después entras siempre con eso.
+    </p>
+    <form method="post" action="/entrar/activar" class="entrada-form">
+      <label>
+        <span>Usuario</span>
+        <input name="usuario" value="{{ usuario }}" autocomplete="username" autocapitalize="none"
+               spellcheck="false" required autofocus>
+      </label>
+      <label>
+        <span>Código que te dieron</span>
+        <input name="codigo" inputmode="text" autocomplete="one-time-code"
+               autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX" required>
+      </label>
+      <label>
+        <span>Contraseña nueva</span>
+        <input name="clave" type="password" autocomplete="new-password" minlength="8" required>
+        <small>Mínimo 8 caracteres, con al menos una letra.</small>
+      </label>
+      <label>
+        <span>Repítela</span>
+        <input name="clave2" type="password" autocomplete="new-password" minlength="8" required>
+      </label>
+      <button class="boton-entrar" type="submit">CREAR CONTRASEÑA Y ENTRAR</button>
+    </form>
+    <p class="entrada-pie">
+      {% if error %}<span class="entrada-error">{{ error }}</span>{% endif %}
+    </p>
+    <p class="entrada-pie">
+      <a href="/entrar">Ya tengo contraseña</a>
+    </p>
+
+    {% else %}
+    <h1>Entrar</h1>
+    <form method="post" action="/entrar" class="entrada-form">
+      <input type="hidden" name="ir" value="{{ ir }}">
+      <label>
+        <span>Usuario</span>
+        <input name="usuario" value="{{ usuario }}" autocomplete="username"
+               autocapitalize="none" spellcheck="false" required autofocus>
+      </label>
+      <label>
+        <span>Contraseña</span>
+        <input name="clave" type="password" autocomplete="current-password" required>
+      </label>
+      <button class="boton-entrar" type="submit">ENTRAR</button>
+    </form>
+    <p class="entrada-pie">
+      {% if error %}<span class="entrada-error">{{ error }}</span>{% endif %}
+    </p>
+    <p class="entrada-pie">
+      <a href="/entrar/activar">Es mi primera vez: crear mi contraseña</a>
+    </p>
+    <p class="entrada-pie tenue">
+      ¿Olvidaste la contraseña? Pídele a la administración un código nuevo.
+    </p>
+    <p class="entrada-pie tenue">
+      ¿Eres conductor? <a href="/conductor">Entra con tu DNI</a>.
+    </p>
+    {% endif %}
+  </div>
+</body>
+</html>

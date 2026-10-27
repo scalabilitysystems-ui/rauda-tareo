@@ -1,0 +1,181 @@
+:root {
+  /* Marca Rauda: amarillo #FFD300 + negro (rauda.pe). El amarillo va de RELLENO con texto
+     negro encima: es lo que se ve de lejos en la calle y lo que mantiene la marca. */
+  --marca: #FFD300;
+  --marca-oscura: #E6BE00;
+  --marca-suave: #FFF9DB;
+  --negro: #0d0d0d;
+
+  --tinta: #111111;
+  --suave: #34343c;
+  --tenue: #6b6b72;
+  --linea: #e6e6e6;
+  --fondo: #f7f8fa;
+  --panel: #ffffff;
+  --verde: #046c4e;
+  --verde-claro: #ecfdf3;
+  --ambar: #8a5a00;
+  --ambar-claro: #fff9db;
+  --rojo: #b42318;
+  --rojo-claro: #fef3f2;
+  --azul: #111111;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--fondo);
+  color: var(--tinta);
+  font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding-bottom: 28px;
+  min-height: 100vh;
+}
+
+/* --- barra de arriba --- */
+.barra {
+  background: var(--negro);
+  color: #fff;
+  padding: 14px 18px 16px;
+  border-bottom: 3px solid var(--marca);
+  position: sticky; top: 0; z-index: 10;
+}
+.barra .quien { font-size: 13px; color: #c7cdd6; text-transform: uppercase; letter-spacing: .06em; }
+.barra .nombre { font-size: 19px; font-weight: 600; margin-top: 2px; }
+.barra .dia { font-size: 13px; color: #c7cdd6; margin-top: 2px; }
+
+.estado-red {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 10px; padding: 4px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600;
+}
+.estado-red.online { background: rgba(16, 185, 129, .15); color: #6ee7b7; }
+.estado-red.offline { background: rgba(245, 158, 11, .18); color: #fcd34d; }
+.estado-red .punto { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+main { padding: 16px; max-width: 560px; margin: 0 auto; }
+
+/* --- tarjetas --- */
+.tarjeta {
+  background: var(--panel); border-radius: 14px; padding: 16px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .06);
+  margin-bottom: 14px;
+}
+.tarjeta h2 {
+  margin: 0 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--tenue); font-weight: 700;
+}
+.tarjeta p { margin: 6px 0 0; font-size: 14px; color: var(--suave); }
+
+.dato-grande { font-size: 32px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.dato-medio { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.fila-datos { display: flex; gap: 10px; }
+.fila-datos > div { flex: 1; background: var(--panel); border-radius: 12px; padding: 12px 14px; }
+
+/* --- botones grandes --- */
+button { font: inherit; cursor: pointer; border: 0; }
+
+.boton-principal {
+  width: 100%; padding: 22px 18px; border-radius: 14px;
+  background: var(--marca); color: var(--tinta);
+  font-size: 20px; font-weight: 800; letter-spacing: -.01em;
+  text-transform: uppercase;
+  box-shadow: 0 3px 0 var(--marca-oscura);
+  margin-bottom: 12px;
+}
+.boton-principal:active { transform: translateY(2px); box-shadow: none; }
+.boton-principal[disabled] { background: #efe6b8; color: #8a8a8a; box-shadow: none; }
+
+.boton-secundario {
+  flex: 1; padding: 15px 12px; border-radius: 12px;
+  background: #fff; border: 1px solid var(--linea); color: var(--tinta);
+  font-size: 15px; font-weight: 600;
+}
+.boton-secundario:active { background: #f2f3f5; }
+.boton-secundario.rojo { color: var(--rojo); border-color: #f5c2be; }
+.boton-secundario.ambar { color: var(--ambar); border-color: #f3d9a4; }
+
+.fila-botones { display: flex; gap: 10px; margin-bottom: 12px; }
+
+.boton-chico {
+  padding: 13px 14px; border-radius: 10px; background: #fff;
+  border: 1px solid var(--linea); font-size: 14px; font-weight: 600; color: var(--azul);
+}
+
+/* --- carga de pedidos --- */
+.campo-pedidos { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+.campo-pedidos input {
+  flex: 1; font: inherit; font-size: 26px; font-weight: 700; text-align: center;
+  padding: 12px; border: 1px solid var(--linea); border-radius: 12px;
+  font-variant-numeric: tabular-nums; width: 100%;
+}
+.paso {
+  width: 54px; height: 54px; border-radius: 12px; background: #eef1f5;
+  font-size: 24px; font-weight: 700; color: var(--tinta);
+}
+
+.etiqueta { font-size: 13px; color: var(--tenue); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+
+/* --- avisos --- */
+.aviso {
+  border-radius: 12px; padding: 12px 14px; font-size: 14px; margin-bottom: 12px;
+  border-left: 4px solid var(--linea);
+}
+.aviso.ok { background: var(--verde-claro); border-left-color: var(--verde); }
+.aviso.ojo { background: var(--ambar-claro); border-left-color: var(--ambar); }
+.aviso.mal { background: var(--rojo-claro); border-left-color: var(--rojo); }
+.aviso strong { display: block; margin-bottom: 2px; }
+
+.nota { font-size: 12.5px; color: var(--tenue); text-align: center; margin-top: 18px; }
+
+/* --- login --- */
+.login { padding: 24px 18px; max-width: 420px; margin: 0 auto; }
+.login h1 { font-size: 24px; margin: 18px 0 6px; letter-spacing: -.02em; }
+.login p { color: var(--suave); font-size: 14px; margin: 0 0 22px; }
+.login label { display: block; margin-bottom: 14px; }
+.login label span { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--tenue); font-weight: 700; margin-bottom: 6px; }
+.login input {
+  width: 100%; padding: 16px; font: inherit; font-size: 20px;
+  border: 1px solid var(--linea); border-radius: 12px; background: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.login input#pin { letter-spacing: .35em; text-align: center; font-weight: 700; }
+.login .boton-principal { margin-top: 8px; }
+.error { color: var(--rojo); font-size: 14px; margin-top: 12px; min-height: 20px; }
+.logo-rauda { height: 44px; width: auto; display: block; margin: 14px 0 20px; }
+.logo-grande {
+  width: 54px; height: 54px; border-radius: 14px; background: var(--tinta); color: #fff;
+  display: grid; place-items: center; font-size: 26px; font-weight: 700; margin-top: 12px;
+}
+
+/* --- campos sueltos del cierre --- */
+.campo-suelto {
+  width: 100%; padding: 14px; font: inherit; font-size: 20px; font-weight: 700;
+  text-align: center; border: 1px solid var(--linea); border-radius: 12px;
+  background: #fff; font-variant-numeric: tabular-nums;
+}
+
+
+/* --- enlace de la pantalla de entrada (primera vez) --- */
+.enlace {
+  display: block; width: 100%; margin: 18px 0 0; padding: 14px 10px;
+  background: none; border: none; cursor: pointer;
+  font: inherit; font-size: 15px; font-weight: 600;
+  color: var(--tinta); text-decoration: underline;
+  text-decoration-color: var(--marca); text-decoration-thickness: 3px;
+}
+.login .error { margin-top: 12px; margin-bottom: 8px; }
+
+/* Aviso de sesión vencida: lo tranquiliza, no lo asusta. */
+.aviso-guardado {
+  background: var(--marca-suave); border: 1px solid var(--marca);
+  border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--tinta);
+  margin: 0 0 18px;
+}
+
+/* Foco visible: quien navega con teclado tiene que ver dónde está. */
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+  outline: 3px solid var(--tinta); outline-offset: 2px;
+}

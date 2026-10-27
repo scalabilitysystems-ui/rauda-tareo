@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Rauda · entrar</title>
+  <meta name="theme-color" content="#111827">
+  <link rel="manifest" href="/conductor/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/conductor/app/icono-192.png">
+  <link rel="stylesheet" href="/conductor/app/conductor.css?v=11">
+</head>
+<body>
+  <div class="login">
+    <img class="logo-rauda" src="/conductor/app/logo-rauda-negro.svg" alt="Rauda">
+
+    <!-- Entrar -->
+    <div id="pantalla-entrar">
+      <h1>Mi día</h1>
+      <p>Entra con tu DNI y tu contraseña.</p>
+      <p id="aviso-vencida" class="aviso-guardado" hidden>
+        Tu sesión venció. <b>Los toques que marcaste están guardados</b> y suben solos cuando
+        vuelvas a entrar.
+      </p>
+      <form id="form">
+        <label>
+          <span>DNI</span>
+          <input id="documento" name="documento" inputmode="numeric" autocomplete="username"
+                 placeholder="70012341" required>
+        </label>
+        <label>
+          <span>Contraseña</span>
+          <input id="clave" name="clave" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="boton-principal" type="submit" id="entrar">ENTRAR</button>
+        <div class="error" id="error" role="alert"></div>
+      </form>
+      <button class="enlace" type="button" id="ir-registrar">Es mi primera vez</button>
+    </div>
+
+    <!-- Primera vez: elige su contraseña, sin códigos que repartir -->
+    <div id="pantalla-registrar" hidden>
+      <h1>Crear mi contraseña</h1>
+      <p>Es tu primera vez. Pon tu DNI y elige una contraseña.</p>
+      <form id="form-registrar">
+        <label>
+          <span>DNI</span>
+          <input id="a-documento" inputmode="numeric" autocomplete="username"
+                 placeholder="70012341" required>
+        </label>
+        <label>
+          <span>Contraseña nueva</span>
+          <input id="a-clave" type="password" autocomplete="new-password" minlength="8" required>
+          <small>Mínimo 8 caracteres, con al menos una letra.</small>
+        </label>
+        <label>
+          <span>Repítela</span>
+          <input id="a-clave2" type="password" autocomplete="new-password" minlength="8" required>
+        </label>
+        <button class="boton-principal" type="submit" id="registrar">CREAR Y ENTRAR</button>
+        <div class="error" id="error-registrar" role="alert"></div>
+      </form>
+      <button class="enlace" type="button" id="ir-entrar">Ya tengo contraseña</button>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api/conductor';
+    const error = document.getElementById('error');
+    const errorRegistrar = document.getElementById('error-registrar');
+    const pantallaEntrar = document.getElementById('pantalla-entrar');
+    const pantallaRegistrar = document.getElementById('pantalla-registrar');
+
+    const guardarSesion = (datos) => {
+      localStorage.setItem('rauda_token', JSON.stringify(datos.token));
+      localStorage.setItem('rauda_nombre', JSON.stringify(datos.nombre));
+      localStorage.removeItem('rauda_estado');
+      location.replace('/conductor/hoy');
+    };
+
+    // Si ya tiene sesión guardada, va derecho a su día (el servidor decide si sigue válida).
+    if (localStorage.getItem('rauda_token')) location.replace('/conductor/hoy');
+
+    // Si llegó acá con la sesión vencida, se le dice que no perdió nada.
+    const aviso = document.getElementById('aviso-vencida');
+    if (new URLSearchParams(location.search).get('vencida') || localStorage.getItem('rauda_vence')) {
+      aviso.hidden = false;
+      localStorage.removeItem('rauda_vence');
+    }
+
+    document.getElementById('ir-registrar').addEventListener('click', () => {
+      pantallaEntrar.hidden = true;
+      pantallaRegistrar.hidden = false;
+      document.getElementById('a-documento').value = document.getElementById('documento').value;
+      document.getElementById('a-documento').focus();
+    });
+    document.getElementById('ir-entrar').addEventListener('click', () => {
+      pantallaRegistrar.hidden = true;
+      pantallaEntrar.hidden = false;
+      document.getElementById('documento').focus();
+    });
+
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      error.textContent = '';
+      const boton = document.getElementById('entrar');
+      boton.disabled = true;
+      try {
+        const r = await fetch(`${API}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            documento: document.getElementById('documento').value.trim(),
+            clave: document.getElementById('clave').value,
+          }),
+        });
+        if (r.status === 429) {
+          error.textContent = 'Demasiados intentos. Espera 15 minutos y prueba de nuevo.';
+        } else if (!r.ok) {
+          error.textContent = 'DNI o contraseña incorrectos.';
+        } else {
+          guardarSesion(await r.json());
+          return;
+        }
+      } catch (err) {
+        error.textContent = 'No hay conexión. Prueba cuando tengas señal.';
+      }
+      boton.disabled = false;
+    });
+
+    document.getElementById('form-registrar').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorRegistrar.textContent = '';
+      const clave = document.getElementById('a-clave').value;
+      if (clave !== document.getElementById('a-clave2').value) {
+        errorRegistrar.textContent = 'Las dos contraseñas no coinciden.';
+        return;
+      }
+      const boton = document.getElementById('registrar');
+      boton.disabled = true;
+      try {
+        const r = await fetch(`${API}/registrar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            documento: document.getElementById('a-documento').value.trim(),
+            clave,
+          }),
+        });
+        if (!r.ok) {
+          const datos = await r.json().catch(() => ({}));
+          errorRegistrar.textContent = datos.detail || 'No se pudo crear la contraseña.';
+        } else {
+          guardarSesion(await r.json());
+          return;
+        }
+      } catch (err) {
+        errorRegistrar.textContent = 'No hay conexión. Prueba cuando tengas señal.';
+      }
+      boton.disabled = false;
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/conductor/sw.js', { scope: '/conductor/' }).catch(() => {});
+    }
+  </script>
+</body>
+</html>

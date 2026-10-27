@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block titulo %}Liquidación {{ dia }} · Rauda{% endblock %}
+{% block contenido %}
+
+<section class="tarjetas">
+  <div class="tarjeta liquida">
+    <span class="rotulo">A pagar</span>
+    <strong>{{ liq.plata_a_pagar | soles }}</strong>
+    <span class="pie">{{ liq.pedidos_a_pagar or 0 }} pedidos · {{ liq.filas_a_pagar or 0 }} filas</span>
+  </div>
+  <div class="tarjeta duda">
+    <span class="rotulo">Sin liquidar (falta un dato)</span>
+    <strong>{{ liq.plata_pendiente | soles }}</strong>
+    <span class="pie">{{ liq.pedidos_pendientes or 0 }} pedidos · {{ liq.filas_pendientes or 0 }} filas</span>
+  </div>
+  <div class="tarjeta">
+    <span class="rotulo">Tardanzas a la vista</span>
+    <strong>{{ liq.tardanzas or 0 }}</strong>
+    <span class="pie">descuento sin calcular: falta la regla escrita</span>
+  </div>
+  <div class="tarjeta neutra">
+    <span class="rotulo">No trabajó</span>
+    <strong>{{ liq.no_trabajo or 0 }}</strong>
+    <span class="pie">no reportó</span>
+  </div>
+</section>
+
+{% if cierre %}
+<div class="cierre cerrado">
+  <div>
+    <strong>Día cerrado por {{ cierre.cerrado_por }}</strong>
+    <span>el {{ cierre.cuando | hora_local }} · {{ cierre.filas }} filas · {{ cierre.total | soles }} registrados</span>
+  </div>
+  <form method="post" action="/cerrar">
+    <input type="hidden" name="cliente" value="{{ cliente.id }}">
+    <input type="hidden" name="fecha" value="{{ dia }}">
+    <input type="hidden" name="autor" value="{{ cierre.cerrado_por }}">
+    <button class="boton-secundario" type="submit">Volver a cerrar con los datos de ahora</button>
+  </form>
+</div>
+{% else %}
+<div class="cierre abierto">
+  <div>
+    <strong>El día no está cerrado.</strong>
+    <span>Al cerrarlo queda registrado quién lo hizo y con qué números: eso reemplaza la planilla.</span>
+  </div>
+  <form method="post" action="/cerrar">
+    <input type="hidden" name="cliente" value="{{ cliente.id }}">
+    <input type="hidden" name="fecha" value="{{ dia }}">
+    <input type="hidden" name="autor" value="operaciones">
+    <button type="submit">Cerrar el día</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="aviso-regla">
+  <strong>El descuento por tardanza no se calcula todavía.</strong>
+  Falta la regla por escrito de operaciones: desde qué minuto descuenta, qué pasa con un minuto
+  menos, qué pasa con más de treinta y cómo se pagan las horas extras. La columna queda vacía
+  a propósito: un cero aquí sería un dato inventado sobre el sueldo de una persona.
+</div>
+
+<table class="tareo liquidacion">
+  <thead>
+    <tr>
+      <th class="estado-col"></th>
+      <th>Conductor</th>
+      <th>DNI</th>
+      <th>Tienda</th>
+      <th class="num">Pedidos</th>
+      <th class="num">Tarifa</th>
+      <th class="num">Bruto</th>
+      <th class="num">Tardanza</th>
+      <th class="num">Descuento</th>
+      <th class="num">A pagar</th>
+      <th>Estado</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for i in liq.filas %}
+    {% set clase = 'duda' if i.estado == 'pendiente' else ('ausente' if i.estado == 'no_trabajo' else 'ok') %}
+    <tr class="fila {{ clase }}">
+      <td class="estado-col {{ clase }}"></td>
+      <td class="conductor">
+        <a href="/fila?conductor={{ i.conductor_id }}&cliente={{ cliente.id }}&fecha={{ dia }}">{{ i.nombre | title }}</a>
+      </td>
+      <td class="mono {{ 'sin-dni' if not i.documento_confirmado }}">{{ i.documento or '—' }}</td>
+      <td>{{ i.tienda or '—' }}</td>
+      <td class="num">{{ i.pedidos | int if i.pedidos is not none else '—' }}
+        {% if i.sac %}<span class="chip sac" title="{{ i.pedidos_regulares }} regulares + {{ i.sac }} SAC">{{ i.sac }} SAC</span>{% endif %}
+      </td>
+      <td class="num tenue">{{ i.tarifa | soles }}</td>
+      <td class="num">{{ i.bruto | soles if i.bruto is not none else '—' }}</td>
+      <td class="num {{ 'alerta' if (i.tardanza_min or 0) > 15 }}">
+        {% if (i.tardanza_min or 0) > 15 %}+{{ i.tardanza_min }}′{% else %}—{% endif %}
+      </td>
+      <td class="num vacio">—</td>
+      <td class="num">
+        {% if i.estado == 'a_pagar' %}<strong>{{ i.total | soles }}</strong>
+        {% else %}<span class="tenue">—</span>{% endif %}
+      </td>
+      <td>
+        {% if i.estado == 'a_pagar' %}
+          <span class="badge ok">A pagar</span>
+        {% elif i.estado == 'pendiente' %}
+          <span class="badge duda" title="{{ i.motivo }}">Pendiente de dato</span>
+        {% else %}
+          <span class="badge ausente">No trabajó</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td></td>
+      <td colspan="3"><strong>Total del día</strong></td>
+      <td class="num"><strong>{{ liq.pedidos_a_pagar or 0 }}</strong></td>
+      <td></td>
+      <td class="num"><strong>{{ liq.plata_a_pagar | soles }}</strong></td>
+      <td colspan="2"></td>
+      <td class="num"><strong>{{ liq.plata_a_pagar | soles }}</strong></td>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>
+
+<p class="nota">
+  El total no incluye las filas pendientes ({{ liq.plata_pendiente | soles }} sin liquidar):
+  se pagan cuando se confirma el DNI o se resuelve el dato del día.
+</p>
+
+{% endblock %}

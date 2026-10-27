@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block titulo %}Reporte del período · Rauda{% endblock %}
+{% block contenido %}
+
+<section class="reporte">
+  <div class="reporte-encabezado">
+    <div>
+      <h1>Reporte del período</h1>
+      <p class="meta">
+        El tareo ya resuelto —una fila por conductor y día, con totales— más los números del
+        negocio. Es lo que se descarga y se usa para liquidar; no hay que armar nada a mano.
+      </p>
+    </div>
+    <form class="filtros" method="get" action="/reporte">
+      <input type="hidden" name="cliente" value="{{ cliente.id }}">
+      <label><span>Desde</span><input type="date" name="desde" value="{{ desde }}"></label>
+      <label><span>Hasta</span><input type="date" name="hasta" value="{{ hasta }}"></label>
+      <button type="submit" class="boton-secundario">Ver</button>
+      <a class="boton-primario-chico"
+         href="/reporte.xlsx?cliente={{ cliente.id }}&desde={{ desde }}&hasta={{ hasta }}">Descargar Excel</a>
+    </form>
+  </div>
+
+  <section class="tarjetas">
+    <div class="tarjeta liquida">
+      <span class="rotulo">Pedidos liquidados</span>
+      <strong>{{ m.pedidos or 0 }}</strong>
+      <span class="pie">{{ m.regulares or 0 }} regulares + {{ m.sac or 0 }} SAC</span>
+    </div>
+    <div class="tarjeta">
+      <span class="rotulo">S/ a pagar por pedidos</span>
+      <strong>{{ m.plata | soles }}</strong>
+      <span class="pie">{{ m.filas or 0 }} registros · {{ m.conductores or 0 }} conductores</span>
+    </div>
+    <div class="tarjeta duda">
+      <span class="rotulo">S/ sin liquidar</span>
+      <strong>{{ m.sin_liquidar | soles }}</strong>
+      <span class="pie">{{ m.pendientes or 0 }} pedidos pendientes de un dato</span>
+    </div>
+    <div class="tarjeta neutra">
+      <span class="rotulo">S/ por conductor-día</span>
+      <strong>{{ m.costo_por_fila | soles }}</strong>
+      <span class="pie">{{ m.dias or 0 }} días con operación</span>
+    </div>
+  </section>
+
+  <div class="dos-columnas">
+    <section class="panel">
+      <h2>Qué dicen los números</h2>
+      <table class="lecturas">
+        <tbody>
+          <tr><td>Integridad del registro
+              <span class="tenue">(sin bloqueos ni dudas)</span></td>
+              <td class="mono">
+                {{ ((m.ok or 0) * 100 / (m.filas or 1)) | round | int }}%
+                <span class="tenue">({{ m.ok or 0 }}/{{ m.filas or 0 }})</span>
+              </td></tr>
+          <tr><td>No trabajó
+              <span class="tenue">(no reportó)</span></td>
+              <td class="mono">{{ m.no_trabajo or 0 }}
+                <span class="tenue">({{ ((m.no_trabajo or 0) * 100 / (m.filas or 1)) | round | int }}%)</span>
+              </td></tr>
+          <tr><td>Pendiente de dato
+              <span class="tenue">(documento, dato raro o sin cerrar)</span></td>
+              <td class="mono">{{ (m.pendientes_dato or 0) + (m.pendientes_cierre or 0) }}
+                <span class="tenue">({{ m.pendientes_dato or 0 }} + {{ m.pendientes_cierre or 0 }})</span>
+              </td></tr>
+          <tr><td>Ingresos dentro del bloque</td>
+              <td class="mono">{{ m.en_bloque or 0 }}
+                <span class="tenue">de {{ m.con_ingreso or 0 }}</span></td></tr>
+          <tr><td>Tardanzas de más de 15 min</td>
+              <td class="mono">{{ m.tardanzas or 0 }}
+                <span class="tenue">prom. {{ m.tardanza_prom or 0 }} min</span></td></tr>
+          <tr><td>Entregas tocadas
+              <span class="tenue">contra lo declarado</span></td>
+              <td class="mono">{{ m.tocadas or 0 }}
+                <span class="tenue">de {{ m.pedidos or 0 }} pedidos</span></td></tr>
+          <tr><td>Cargado desde el panel</td>
+              <td class="mono">{{ m.desde_panel or 0 }}
+                <span class="tenue">({{ ((m.desde_panel or 0) * 100 / (m.filas or 1)) | round | int }}%)</span>
+              </td></tr>
+          <tr><td>Corregido a mano</td>
+              <td class="mono">{{ m.corregidas or 0 }}</td></tr>
+          <tr><td>Rechazados / vueltas caídas</td>
+              <td class="mono">{{ m.rechazados or 0 }} / {{ m.caidas or 0 }}</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Día por día</h2>
+      {% if por_dia %}
+      <table class="lecturas">
+        <thead><tr><th>Día</th><th class="num">Filas</th><th class="num">Pedidos</th>
+          <th class="num">SAC</th><th class="num">Bloq.</th><th class="num">No rep.</th></tr></thead>
+        <tbody>
+          {% for d in por_dia %}
+          <tr>
+            <td class="mono">{{ d.dia.strftime('%d/%m') }}</td>
+            <td class="num">{{ d.filas }}</td>
+            <td class="num">{{ d.pedidos }}</td>
+            <td class="num">{{ d.sac }}</td>
+            <td class="num {{ 'alerta' if d.pendientes }}">{{ d.pendientes }}</td>
+            <td class="num {{ 'tenue' if not d.ausentes }}">{{ d.ausentes }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="nota">No hay operación en ese rango de fechas.</p>
+      {% endif %}
+
+      {% if motivos %}
+      <h3>Por qué no se entregó</h3>
+      <table class="lecturas">
+        <tbody>
+          {% for mo in motivos %}
+          <tr><td>{{ nombre_motivo.get(mo.motivo, 'Sin motivo') }}</td>
+              <td class="num mono">{{ mo.cuantas }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="aviso-regla">
+    <strong>El Excel que se descarga tiene tres hojas:</strong>
+    <b>Tareo</b> (una fila por conductor y día, con totales: es el que se usa para liquidar),
+    <b>Resumen</b> (estos números, más el día por día y el motivo de los rechazos) y
+    <b>Excepciones</b> (solo lo pendiente de un dato, con el motivo, para resolverlo).
+    Los números salen de las mismas vistas que la pantalla, así que coinciden siempre.
+  </div>
+</section>
+
+{% endblock %}

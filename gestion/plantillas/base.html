@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Rauda · control de cierres{% endblock %}</title>
+  <link rel="stylesheet" href="/estatico/panel.css?v=6">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <header class="barra-superior">
+    <div class="marca">
+      <img class="logo" src="/estatico/logo-rauda-blanco.svg" alt="Rauda" height="34">
+      <div>
+        <strong>Control de la operación</strong>
+        <span>última milla</span>
+      </div>
+    </div>
+    <nav class="pestanas">
+      <a class="pestana {{ 'activa' if vista == 'dia' }}"
+         href="/dia?cliente={{ cliente.id }}&fecha={{ dia }}">Día</a>
+      <a class="pestana {{ 'activa' if vista == 'liquidacion' }}"
+         href="/liquidacion?cliente={{ cliente.id }}&fecha={{ dia }}">Liquidación</a>
+      <a class="pestana {{ 'activa' if vista == 'mapa' }}"
+         href="/mapa?cliente={{ cliente.id }}&fecha={{ dia }}">Mapa</a>
+      <a class="pestana {{ 'activa' if vista == 'reporte' }}"
+         href="/reporte?cliente={{ cliente.id }}">Reporte</a>
+      <a class="pestana {{ 'activa' if vista == 'revision' }}"
+         href="/revision?cliente={{ cliente.id }}">Revisar</a>
+      <a class="pestana {{ 'activa' if vista == 'planificacion' }}"
+         href="/planificacion?cliente={{ cliente.id }}&fecha={{ dia }}">Planificación</a>
+      {% if 'configuracion' in menu %}
+      <a class="pestana {{ 'activa' if vista == 'configuracion' }}" href="/configuracion">Configuración</a>
+      {% endif %}
+      {% if 'usuarios' in menu %}
+      <a class="pestana {{ 'activa' if vista == 'usuarios' }}" href="/usuarios">Usuarios</a>
+      {% endif %}
+    </nav>
+    {% if cuenta %}
+    <div class="usuario-sesion">
+      <span>Entraste como <strong>{{ cuenta.nombre }}</strong></span>
+      <a class="pestana" href="/mi-clave">Mi contraseña</a>
+      <form method="post" action="/salir"><button class="boton-secundario" type="submit">Salir</button></form>
+    </div>
+    {% endif %}
+  </header>
+
+  {% if es_demo %}
+  <div class="aviso-demo">Datos de demostración — no corresponden a una operación real.</div>
+  {% endif %}
+
+  <main>
+    <form class="filtros" method="get" action="{{ '/liquidacion' if vista == 'liquidacion' else '/dia' }}">
+      <label>
+        <span>Cliente</span>
+        <select name="cliente" onchange="this.form.submit()">
+          {% for c in clientes %}
+          <option value="{{ c.id }}" {{ 'selected' if c.id == cliente.id }}>{{ c.nombre }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>Día</span>
+        <input type="date" name="fecha" value="{{ dia }}" onchange="this.form.submit()">
+      </label>
+      <label class="tarifa">
+        <span>Tarifa</span>
+        <strong>{{ tarifa | soles }} / pedido</strong>
+      </label>
+      <noscript><button type="submit">Ver</button></noscript>
+    </form>
+
+    {% block contenido %}{% endblock %}
+  </main>
+
+  <footer>
+    Todo se calcula en la base. Cada celda muestra de qué mensaje salió; un valor sin mensaje
+    detrás solo puede venir de una corrección, y la corrección dice quién la hizo.
+  </footer>
+</body>
+</html>

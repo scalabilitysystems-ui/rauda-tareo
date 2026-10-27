@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block titulo %}Mapa {{ dia }} · Rauda{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="/estatico/leaflet/leaflet.css">
+  <script src="/estatico/leaflet/leaflet.js"></script>
+{% endblock %}
+{% block contenido %}
+
+{% set con_punto = mapa.conductores | selectattr('ultima_lat') | list | length %}
+<section class="tarjetas">
+  <div class="tarjeta">
+    <span class="rotulo">Con puntos del día</span>
+    <strong>{{ con_punto }} de {{ mapa.conductores | length }}</strong>
+    <span class="pie">{{ mapa.puntos | length }} puntos en total</span>
+  </div>
+  <div class="tarjeta neutra">
+    <span class="rotulo">Entregas marcadas</span>
+    <strong>{{ mapa.conductores | sum(attribute='entregas_tocadas') }}</strong>
+    <span class="pie">cada una deja su punto</span>
+  </div>
+  <div class="tarjeta">
+    <span class="rotulo">Lejos de la tienda</span>
+    <strong>{{ mapa.conductores | selectattr('estado_ubicacion', 'equalto', 'lejos') | list | length }}</strong>
+    <span class="pie">marcaron la llegada fuera del radio</span>
+  </div>
+  <div class="tarjeta neutra">
+    <span class="rotulo">Sin ubicación</span>
+    <strong>{{ mapa.conductores | rejectattr('ultima_lat') | list | length }}</strong>
+    <span class="pie">no compartieron el punto</span>
+  </div>
+</section>
+
+<div class="mapa-envoltorio">
+  <div id="mapa" class="mapa"></div>
+
+  <aside class="mapa-panel">
+    <h2>Conductores del día</h2>
+    <ul class="lista-conductores">
+      {% for c in mapa.conductores %}
+      <li class="conductor-mapa" data-conductor="{{ c.conductor_id }}"
+          data-lat="{{ c.ultima_lat or '' }}" data-lon="{{ c.ultima_lon or '' }}">
+        <div class="quien">
+          <strong>{{ c.nombre | title }}</strong>
+          <span>
+            {{ c.codigo_tienda or '—' }} · {{ c.supervisor or '—' }}
+            {% if c.estado_ubicacion == 'lejos' %}<span class="chip tardanza">lejos</span>{% endif %}
+            {% if not c.ultima_lat %}<span class="chip provisorio">sin punto</span>{% endif %}
+          </span>
+        </div>
+        <div class="numeros">
+          <span title="Entregas que tocó">{{ c.entregas_tocadas }} tocadas</span>
+          <span title="Puntos con ubicación">{{ c.n_puntos }} puntos</span>
+          {% if c.ultima_hora %}<span>{{ c.ultima_hora | hora_local }}</span>{% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="nota">
+      El recorrido une los puntos que el conductor marcó: la llegada y cada entrega. No es
+      seguimiento continuo — el teléfono no manda ubicación con la pantalla apagada.
+    </p>
+  </aside>
+</div>
+
+<script id="datos-mapa" type="application/json">{{ mapa.conductores | tojson }}</script>
+<script src="/estatico/mapa.js"></script>
+
+{% endblock %}

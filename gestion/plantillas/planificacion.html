@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block titulo %}Planificación del día · Rauda{% endblock %}
+{% block contenido %}
+{% if aviso %}<div class="aviso-demo aviso-ok">{{ aviso }}</div>{% endif %}
+{% if error %}<div class="entrada-error">{{ error }}</div>{% endif %}
+
+<section class="bloque">
+  <h2>Quién trabaja el {{ dia }}</h2>
+  <p class="tenue">
+    Esta lista es el plantel del día. Sin ella el sistema solo ve a los que cargaron algo: no
+    puede distinguir "no trabajó" de "todavía no cargó".
+  </p>
+
+  <form method="get" action="/planificacion" class="filtros">
+    <label><span>Día</span>
+      <input type="date" name="fecha" value="{{ dia }}" onchange="this.form.submit()"></label>
+    <label><span>Cliente</span>
+      <select name="cliente" onchange="this.form.submit()">
+        {% for c in clientes %}
+        <option value="{{ c.id }}" {{ 'selected' if c.id == cliente.id }}>{{ c.nombre }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </form>
+
+  <div class="par">
+    <div>
+      <h3>En el plantel ({{ plantel | length }})</h3>
+      {% if plantel %}
+      <table class="tabla tabla-usuarios">
+        <thead><tr><th>Conductor</th><th>DNI</th><th>Tienda</th><th>Previstos</th><th></th></tr></thead>
+        <tbody>
+          {% for p in plantel %}
+          <tr>
+            <td>{{ p.nombre }}</td>
+            <td class="mono tenue">{{ p.documento or '—' }}</td>
+            <td class="mono">{{ p.codigo_tienda or '—' }}</td>
+            <td class="mono">{{ p.pedidos_programados or '—' }}</td>
+            <td class="derecha">
+              <form method="post" action="/planificacion/quitar">
+                <input type="hidden" name="conductor" value="{{ p.conductor_id }}">
+                <input type="hidden" name="cliente" value="{{ cliente.id }}">
+                <input type="hidden" name="fecha" value="{{ dia }}">
+                <button class="boton-secundario" type="submit">Quitar</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="aviso-demo">
+        Nadie asignado todavía. Elegí a la derecha quiénes trabajan ese día.
+      </div>
+      {% endif %}
+    </div>
+
+    <form method="post" action="/planificacion" class="ficha">
+      <h3>Agregar al plantel</h3>
+      <input type="hidden" name="cliente" value="{{ cliente.id }}">
+      <input type="hidden" name="fecha" value="{{ dia }}">
+      {% if disponibles %}
+      <label><span>Conductores</span>
+        <select name="conductor" multiple size="10" required>
+          {% for c in disponibles %}
+          <option value="{{ c.id }}">{{ c.nombre }}{% if c.codigo_tienda %} · {{ c.codigo_tienda }}{% endif %}</option>
+          {% endfor %}
+        </select>
+        <small>Se pueden elegir varios (Ctrl o Cmd + clic).</small>
+      </label>
+      <label><span>Pedidos previstos por conductor</span>
+        <input name="pedidos" inputmode="numeric" placeholder="40">
+        <small>Opcional: es el número que se usa para comparar lo que declaró.</small></label>
+      <button class="boton-entrar" type="submit">Asignar al día</button>
+      {% else %}
+      <p class="tenue">
+        Ya están todos los conductores activos en el plantel de este día. Si falta alguien, revisá
+        que esté activo y con tienda en <a href="/configuracion">Configuración</a>.
+      </p>
+      {% endif %}
+    </form>
+  </div>
+</section>
+{% endblock %}

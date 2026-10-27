@@ -1,0 +1,11 @@
+[Unit]
+Description=Respaldo diario de Rauda (03:10 hora de Lima)
+
+[Timer]
+# 03:10 de Lima = 08:10 UTC. Se evita la hora en punto para no chocar con otros procesos.
+OnCalendar=*-*-* 08:10:00 UTC
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block titulo %}{{ fila.nombre | title }} · {{ dia }}{% endblock %}
+{% block contenido %}
+
+<a class="volver" href="/dia?cliente={{ cliente.id }}&fecha={{ dia }}">← Volver al día</a>
+
+<section class="encabezado-fila">
+  <div>
+    <h1>{{ fila.nombre | title }}</h1>
+    <p class="meta">
+      {% if fila.documento %}
+        DNI <span class="mono {{ 'sin-dni' if not fila.documento_confirmado }}">{{ fila.documento }}</span>
+      {% else %}
+        <span class="chip provisorio">sin DNI — se identificó con el código {{ fila.codigo_provisorio or '?' }}</span>
+      {% endif %}
+      {% if not fila.documento_confirmado %}<span class="chip provisorio">no se liquida hasta confirmarlo</span>{% endif %}
+      · Tienda {{ fila.tienda or '—' }}
+      · Zona {{ fila.zona or '—' }}
+      · Supervisor {{ fila.supervisor or '—' }}
+      {% if fila.telefono %}<span class="tenue">· {{ fila.telefono }}</span>{% endif %}
+    </p>
+  </div>
+  <span class="badge grande {{ fila.estado }}">{{ estados[fila.estado][0] }}</span>
+</section>
+
+{% if fila.motivos %}
+<ul class="motivos">
+  {% for m in fila.motivos %}<li class="motivo {{ fila.estado }}">{{ m }}</li>{% endfor %}
+</ul>
+{% endif %}
+
+<div class="dos-columnas">
+  <section class="panel">
+    <h2>Lo que leyó el sistema</h2>
+    <table class="lecturas">
+      <thead>
+        <tr><th>Campo</th><th>Valor</th><th>Origen</th></tr>
+      </thead>
+      <tbody>
+        {% for campo, etiqueta in campos.items() %}
+          {% if campo not in ('codigo_tienda', 'supervisor') %}
+          {% set fuente = fila['fuente_' ~ campo] %}
+          <tr>
+            <td>{{ etiqueta }}</td>
+            <td class="mono">
+              {% if campo == 'hora_ingreso' %}{{ fila.hora_ingreso | hora if fila.hora_ingreso else '—' }}
+              {% elif campo == 'hora_salida' %}{{ fila.hora_salida | hora if fila.hora_salida else '—' }}
+              {% elif campo == 'vueltas' %}{{ fila.vueltas or '—' }}
+              {% elif campo == 'pedidos' %}{{ fila.pedidos or '—' }}
+              {% else %}{{ fila.observacion or '—' }}{% endif %}
+            </td>
+            <td>
+              {% if fuente == 'correccion' %}<span class="chip corr">corrección de {{ fila.autor_correccion or 'operaciones' }}</span>
+              {% elif fuente == 'mensaje' %}
+                <span class="chip mensaje">{% if fila.mensaje_por_campo.get(campo) %}mensaje {{ fila.mensaje_por_campo.get(campo) }}{% else %}leído del mensaje{% endif %}</span>
+              {% elif campo == 'observacion' %}<span class="chip vacio">sin observación</span>
+              {% else %}<span class="chip vacio">no se leyó</span>{% endif %}
+            </td>
+          </tr>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h3>Pago de este día</h3>
+    <p class="pago">
+      {% if fila.estado == 'ok' and fila.pedidos %}
+        <strong>{{ fila.pedidos }} pedidos × {{ tarifa | soles }}</strong> = {{ (fila.pedidos | int) * tarifa | soles }}
+        {% if fila.sac %}<span class="tenue"> ({{ fila.pedidos_regulares }} regulares + {{ fila.sac }} SAC)</span>{% endif %}
+      {% elif fila.estado == 'ausente' %}
+        Sin trabajo que liquidar: no reportó.
+      {% else %}
+        <span class="tenue">No se liquida hasta que se resuelva el motivo de arriba.</span>
+      {% endif %}
+      {% if fila.tardanza_min is not none and fila.tardanza_min > 15 %}
+        <span class="tenue"> · {{ fila.tardanza_min }} min de tardanza: el descuento queda pendiente de la regla escrita.</span>
+      {% endif %}
+    </p>
+    {% if fila.rechazados or fila.vueltas_caidas or fila.entregas_tocadas %}
+    <p class="nota">
+      {% if fila.rechazados %}Declaró {{ fila.rechazados }} rechazado(s).{% endif %}
+      {% if fila.vueltas_caidas %}Declaró {{ fila.vueltas_caidas }} vuelta(s) caída(s).{% endif %}
+      {% if fila.entregas_tocadas %}Tocó {{ fila.entregas_tocadas }} entrega(s) en el panel{% else %}No tocó ninguna entrega en el panel{% endif %}
+      {% if fila.marco_lejos %} · marcó la llegada lejos de la tienda{% endif %}.
+    </p>
+    {% endif %}
+
+    {% if fila.autor_correccion %}
+    <h3>Correcciones</h3>
+    <p class="nota">Este día tiene correcciones a mano de <strong>{{ fila.autor_correccion }}</strong>.
+      La corrección no reemplaza el valor leído: lo tapa y queda dicho.</p>
+    {% endif %}
+
+    <h3>Acceso del conductor</h3>
+    <p class="nota">
+      Entra en <span class="mono">{{ request.base_url }}conductor</span> con su DNI. La primera
+      vez elige su contraseña; si la olvida, se la reinicia desde <b>Usuarios</b>.
+    </p>
+
+    <h3>Corregir a mano</h3>
+    <p class="nota">Una corrección no reemplaza el valor leído: se guarda aparte, con autor y motivo,
+      y la fila queda marcada. Es la única forma de que una celda tenga un dato sin mensaje detrás.</p>
+    <form class="form-correccion" method="post" action="/corregir">
+      <input type="hidden" name="conductor" value="{{ fila.conductor_id }}">
+      <input type="hidden" name="cliente" value="{{ cliente.id }}">
+      <input type="hidden" name="fecha" value="{{ dia }}">
+      <label><span>Campo</span>
+        <select name="campo">
+          {% for campo, etiqueta in campos.items() %}
+          <option value="{{ campo }}">{{ etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label><span>Valor</span><input name="valor" placeholder="41 / 17:40 / 3"></label>
+      <label><span>Quién</span><input name="autor" value="operaciones"></label>
+      <label class="ancho"><span>Motivo</span><input name="motivo" placeholder="por qué se corrige"></label>
+      <button type="submit">Guardar corrección</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Conversación del día</h2>
+    {% if mensajes %}
+      <div class="chat">
+        {% for m in mensajes %}
+        <div class="burbuja">
+          <div class="texto">{{ m.texto }}</div>
+          <div class="pie">{{ m.de_nombre }} · {{ m.hora | hora_local }} · {{ m.id }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="vacio-chat">No hay mensajes de este conductor el {{ dia }}.</p>
+    {% endif %}
+  </section>
+</div>
+
+{% endblock %}

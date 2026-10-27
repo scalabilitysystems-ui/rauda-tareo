@@ -1,0 +1,13 @@
+[Unit]
+Description=Respaldo diario de la base de Rauda
+Documentation=file:///home/ubuntu/rauda/README.md
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/ubuntu/rauda
+Environment=RAUDA_RESPALDO_DIR=/var/backups/rauda
+ExecStart=/home/ubuntu/rauda/scripts/respaldo.sh
+# Un respaldo que falla en silencio es peor que no tenerlo: queda marcado como failed.
+StandardOutput=journal
+StandardError=journal

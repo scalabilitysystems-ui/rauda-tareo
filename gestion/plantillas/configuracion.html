@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+{% block titulo %}Configuración · Rauda{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="/estatico/leaflet/leaflet.css">
+<script src="/estatico/leaflet/leaflet.js"></script>
+{% endblock %}
+
+{% block contenido %}
+{% if aviso %}<div class="aviso-demo aviso-ok">{{ aviso }}</div>{% endif %}
+{% if error %}<div class="entrada-error">{{ error }}</div>{% endif %}
+
+<section class="bloque">
+  <h2>Clientes</h2>
+  <p class="tenue">
+    Cada cliente es una operación: tiene su tarifa, sus tiendas y sus conductores. Dar de alta uno
+    nuevo no requiere a nadie de afuera.
+  </p>
+
+  {% if todos_clientes %}
+  <table class="tabla tabla-usuarios">
+    <thead><tr><th>Cliente</th><th>Tarifa vigente</th><th>Tiendas</th><th>Conductores</th>
+      <th>Estado</th><th></th></tr></thead>
+    <tbody>
+      {% for c in todos_clientes %}
+      <tr class="{{ 'elegido' if operacion and c.id == operacion.id }}">
+        <td><strong>{{ c.nombre }}</strong>{% if operacion and c.id == operacion.id %}
+          <span class="chip ok">editando</span>{% endif %}</td>
+        <td class="mono">{{ c.tarifa_hoy | soles if c.tarifa_hoy is not none else '—' }}</td>
+        <td class="mono">{{ c.tiendas }}</td>
+        <td class="mono">{{ c.conductores }}</td>
+        <td>{% if c.activo %}<span class="chip ok">activo</span>
+            {% else %}<span class="chip">inactivo</span>{% endif %}</td>
+        <td class="derecha">
+          <a class="boton-secundario" href="/configuracion?cliente={{ c.id }}">Configurar</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="aviso-demo">
+    <strong>No hay ningún cliente cargado.</strong> Empezá por crear el primero acá abajo: con eso
+    ya se pueden cargar tiendas, conductores y tarifa.
+  </div>
+  {% endif %}
+
+  <form method="post" action="/configuracion/cliente" class="ficha">
+    <h3>Crear un cliente nuevo</h3>
+    <div class="par-estrecho">
+      <label><span>Nombre</span><input name="nombre" placeholder="Rauda" required></label>
+      <label><span>Tarifa por pedido (S/)</span>
+        <input name="tarifa" inputmode="decimal" placeholder="3.00"></label>
+    </div>
+    <button class="boton-entrar" type="submit">Crear cliente</button>
+  </form>
+</section>
+
+<section class="bloque">
+  <h2>La operación{% if operacion %} · {{ operacion.nombre }}{% endif %}</h2>
+  <p class="tenue">
+    La tarifa por pedido rige <b>desde una fecha</b>: cambiarla hoy no cambia lo que se pagó
+    antes. Cada día se liquida con la tarifa que estaba vigente ese día.
+  </p>
+  <div class="par">
+    <div>
+      <table class="tabla tabla-usuarios">
+        <thead><tr><th>Desde</th><th>Tarifa</th><th>Quién la cargó</th></tr></thead>
+        <tbody>
+          {% for t in tarifas %}
+          <tr>
+            <td class="mono">{{ t.desde }}</td>
+            <td><strong>{{ t.tarifa | soles }}</strong> por pedido</td>
+            <td class="tenue">{{ t.creada_por or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <form method="post" action="/configuracion/tarifa" class="ficha">
+      <h3>Nueva tarifa</h3>
+      <input type="hidden" name="cliente" value="{{ operacion.id }}">
+      <label><span>Precio por pedido (S/)</span>
+        <input name="tarifa" inputmode="decimal" placeholder="3.00" required></label>
+      <label><span>Rige desde</span>
+        <input type="date" name="desde" value="{{ hoy }}" required>
+        <small>Si es hoy, aplica desde hoy. Las liquidaciones anteriores no se tocan.</small></label>
+      <button class="boton-entrar" type="submit">Guardar tarifa</button>
+    </form>
+
+    <form method="post" action="/configuracion/tolerancia" class="ficha">
+      <h3>Tolerancia de tardanza</h3>
+      <input type="hidden" name="cliente" value="{{ operacion.id }}">
+      <label><span>Minutos de tolerancia</span>
+        <input name="minutos" inputmode="numeric" required
+               value="{{ operacion.minutos_tolerancia if operacion else 10 }}">
+        <small>Pasados esos minutos sobre el bloque planificado, la fila se marca como tardanza.
+          Hoy: {{ operacion.minutos_tolerancia or 10 }} minutos.</small>
+      </label>
+      <button class="boton-secundario" type="submit">Guardar tolerancia</button>
+    </form>
+  </div>
+</section>
+
+<section class="bloque">
+  <h2>Tiendas</h2>
+  <p class="tenue">
+    La ubicación se marca en el mapa: es la geocerca del "ya llegué". Si el punto está mal, todos
+    los conductores van a figurar lejos de la tienda.
+  </p>
+
+  {% if tiendas %}
+  <table class="tabla tabla-usuarios">
+    <thead><tr><th>Código</th><th>Dirección</th><th>Zona</th><th>Supervisor</th>
+      <th>Radio</th><th>Conductores</th><th></th></tr></thead>
+    <tbody>
+      {% for t in tiendas %}
+      <tr>
+        <td class="mono"><strong>{{ t.codigo_tienda }}</strong></td>
+        <td>{{ t.etiqueta }}</td>
+        <td class="tenue">{{ t.zona or '—' }}</td>
+        <td class="tenue">{{ t.supervisor or '—' }}</td>
+        <td class="mono">{{ t.radio_m }} m</td>
+        <td class="mono">{{ t.conductores }}</td>
+        <td class="derecha">
+          <button class="boton-secundario" type="button"
+                  data-editar-tienda="{{ t.codigo_tienda }}"
+                  data-etiqueta="{{ t.etiqueta }}" data-zona="{{ t.zona or '' }}"
+                  data-supervisor="{{ t.supervisor or '' }}" data-lat="{{ t.lat }}"
+                  data-lon="{{ t.lon }}" data-radio="{{ t.radio_m }}">Editar</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="aviso-demo">
+    <strong>Todavía no hay ninguna tienda cargada.</strong>
+    Sin tienda, los conductores no pueden abrir el día: cargá la primera acá abajo.
+  </div>
+  {% endif %}
+
+  <form method="post" action="/configuracion/tienda" class="ficha" id="form-tienda">
+    <h3 id="titulo-tienda">Cargar una tienda</h3>
+    <input type="hidden" name="cliente" value="{{ operacion.id }}">
+    <input type="hidden" name="anterior" id="tienda-anterior">
+    <div class="par">
+      <div>
+        <label><span>Código de tienda</span>
+          <input name="codigo" id="t-codigo" placeholder="T-214" required
+                 autocapitalize="characters"></label>
+        <label><span>Dirección</span>
+          <input name="direccion" id="t-direccion" placeholder="Av. Arequipa 4931, Miraflores"
+                 required></label>
+        <label><span>Zona</span>
+          <input name="zona" id="t-zona" placeholder="Lima Norte"></label>
+        <label><span>Supervisor</span>
+          <input name="supervisor" id="t-supervisor" placeholder="operaciones"></label>
+        <label><span>Radio de llegada (metros)</span>
+          <input name="radio_m" id="t-radio" inputmode="numeric" value="200"></label>
+      </div>
+      <div>
+        <div id="mapa-tienda" class="mapa-tienda"></div>
+        <p class="tenue chico">Tocá el mapa donde está la tienda. Se completa solo.</p>
+        <div class="par-estrecho">
+          <label><span>Latitud</span><input name="lat" id="t-lat" readonly placeholder="-12.0"></label>
+          <label><span>Longitud</span><input name="lon" id="t-lon" readonly placeholder="-77.0"></label>
+        </div>
+      </div>
+    </div>
+    <button class="boton-entrar" type="submit">Guardar tienda</button>
+  </form>
+</section>
+
+<section class="bloque">
+  <h2>Conductores</h2>
+  <p class="tenue">
+    Cargar al conductor es todo: con su <b>DNI</b> entra la primera vez y elige su contraseña —
+    la cuenta nace en ese momento, no hay que crearla aparte. Si la olvida, se reinicia acá.
+  </p>
+
+  <table class="tabla tabla-usuarios">
+    <thead><tr><th>DNI</th><th>Nombre</th><th>Teléfono</th><th>Tienda</th><th>Acceso</th>
+      <th></th></tr></thead>
+    <tbody>
+      {% for c in conductores %}
+      <tr class="{{ '' if c.activo else 'fila-inactiva' }}">
+        <td class="mono">{{ c.documento or '—' }}</td>
+        <td>{{ c.nombre }}</td>
+        <td class="mono tenue">{{ c.telefono or '—' }}</td>
+        <td>{{ c.codigo_tienda or '<span class="chip duda">sin tienda</span>' | safe }}</td>
+        <td>
+          {% if not c.activo %}<span class="chip">inactivo</span>
+          {% elif c.tiene_clave %}<span class="chip ok">entra</span>
+          {% else %}<span class="chip duda">todavía no entró</span>{% endif %}
+        </td>
+        <td class="derecha">
+          <form method="post" action="/configuracion/conductor/mover" class="mover"
+                title="Pasar a otro cliente">
+            <input type="hidden" name="conductor" value="{{ c.id }}">
+            <input type="hidden" name="cliente" value="{{ operacion.id }}">
+            <select name="destino" required>
+              <option value="">Mover a…</option>
+              {% for otro in todos_clientes if otro.id != operacion.id %}
+              <option value="{{ otro.id }}">{{ otro.nombre }}</option>
+              {% endfor %}
+            </select>
+            <button class="boton-secundario" type="submit">Mover</button>
+          </form>
+          <button class="boton-secundario" type="button"
+                  data-editar-conductor="{{ c.id }}" data-documento="{{ c.documento or '' }}"
+                  data-nombre="{{ c.nombre }}" data-telefono="{{ c.telefono or '' }}"
+                  data-grupo="{{ c.grupo_id or '' }}">Editar</button>
+          {% if c.tiene_clave %}
+          <form method="post" action="/configuracion/conductor/clave" style="display:inline">
+            <input type="hidden" name="conductor" value="{{ c.id }}">
+            <input type="hidden" name="cliente" value="{{ operacion.id }}">
+            <button class="boton-secundario" type="submit">Reiniciar contraseña</button>
+          </form>
+          {% endif %}
+          <form method="post" action="/configuracion/conductor/activo" style="display:inline">
+            <input type="hidden" name="conductor" value="{{ c.id }}">
+            <input type="hidden" name="cliente" value="{{ operacion.id }}">
+            <input type="hidden" name="activo" value="{{ '0' if c.activo else '1' }}">
+            <button class="boton-secundario" type="submit">
+              {{ 'Desactivar' if c.activo else 'Activar' }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <form method="post" action="/configuracion/conductor" class="ficha" id="form-conductor">
+    <h3 id="titulo-conductor">Cargar un conductor</h3>
+    <input type="hidden" name="cliente" value="{{ operacion.id }}">
+    <input type="hidden" name="conductor" id="c-id">
+    <div class="par-estrecho">
+      <label><span>DNI</span><input name="documento" id="c-documento" inputmode="numeric"
+             placeholder="70012341" required></label>
+      <label><span>Nombre completo</span><input name="nombre" id="c-nombre"
+             placeholder="Nombre Apellido" required></label>
+    </div>
+    <div class="par-estrecho">
+      <label><span>Teléfono</span><input name="telefono" id="c-telefono"
+             placeholder="51987654321"></label>
+      <label><span>Tienda</span>
+        <select name="grupo_id" id="c-grupo">
+          <option value="">— sin tienda —</option>
+          {% for t in tiendas %}
+          <option value="{{ t.grupo_id }}">{{ t.codigo_tienda }} · {{ t.etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+    <button class="boton-entrar" type="submit">Guardar conductor</button>
+  </form>
+</section>
+
+<script>
+  /* El mapa de la tienda: se toca el punto y se completa lat/lon. Sin esto, cargar una
+     coordenada es copiar números de Google Maps y equivocarse el signo. */
+  (function () {
+    const porDefecto = [-12.0464, -77.0428];   // Lima
+    const mapa = L.map('mapa-tienda', { scrollWheelZoom: false }).setView(porDefecto, 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: 'OpenStreetMap'
+    }).addTo(mapa);
+
+    let marcador = null;
+    let circulo = null;
+
+    const pintar = (lat, lon, radio) => {
+      const punto = [Number(lat), Number(lon)];
+      if (!marcador) {
+        marcador = L.marker(punto).addTo(mapa);
+      } else {
+        marcador.setLatLng(punto);
+      }
+      if (circulo) mapa.removeLayer(circulo);
+      circulo = L.circle(punto, { radius: Number(radio) || 200, color: '#111',
+                                  weight: 2, fillOpacity: 0.08 }).addTo(mapa);
+      document.getElementById('t-lat').value = Number(lat).toFixed(6);
+      document.getElementById('t-lon').value = Number(lon).toFixed(6);
+    };
+
+    mapa.on('click', (e) => pintar(e.latlng.lat, e.latlng.lng,
+                                   document.getElementById('t-radio').value));
+    document.getElementById('t-radio').addEventListener('input', () => {
+      const lat = document.getElementById('t-lat').value;
+      const lon = document.getElementById('t-lon').value;
+      if (lat && lon) pintar(lat, lon, document.getElementById('t-radio').value);
+    });
+
+    document.querySelectorAll('[data-editar-tienda]').forEach((boton) => {
+      boton.addEventListener('click', () => {
+        const d = boton.dataset;
+        document.getElementById('titulo-tienda').textContent = 'Editar ' + d.editarTienda;
+        document.getElementById('tienda-anterior').value = d.editarTienda;
+        document.getElementById('t-codigo').value = d.editarTienda;
+        document.getElementById('t-direccion').value = d.etiqueta;
+        document.getElementById('t-zona').value = d.zona;
+        document.getElementById('t-supervisor').value = d.supervisor;
+        document.getElementById('t-radio').value = d.radio;
+        if (d.lat && d.lon) {
+          pintar(d.lat, d.lon, d.radio);
+          mapa.setView([Number(d.lat), Number(d.lon)], 16);
+        }
+        document.getElementById('form-tienda').scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+
+    document.querySelectorAll('[data-editar-conductor]').forEach((boton) => {
+      boton.addEventListener('click', () => {
+        const d = boton.dataset;
+        document.getElementById('titulo-conductor').textContent = 'Editar ' + d.nombre;
+        document.getElementById('c-id').value = d.editarConductor;
+        document.getElementById('c-documento').value = d.documento;
+        document.getElementById('c-nombre').value = d.nombre;
+        document.getElementById('c-telefono').value = d.telefono;
+        document.getElementById('c-grupo').value = d.grupo;
+        document.getElementById('form-conductor').scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+  })();
+</script>
+{% endblock %}

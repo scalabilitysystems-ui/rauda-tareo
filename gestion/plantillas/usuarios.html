@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block titulo %}Usuarios · Rauda{% endblock %}
+{% block contenido %}
+<section class="bloque">
+  <h2>Quién puede entrar</h2>
+  <div class="roles">
+    <div class="rol-card">
+      <strong>Administración</strong>
+      <span>Ve todo y administra todo: día, liquidación, mapa, reporte, <b>configuración</b> y
+        <b>usuarios</b>. Entra con usuario y contraseña.</span>
+    </div>
+    <div class="rol-card">
+      <strong>Operaciones</strong>
+      <span>Todo el día a día y la configuración (tiendas, conductores, tarifas, plantel), pero
+        <b>no</b> crea ni cambia cuentas. Entra con usuario y contraseña.</span>
+    </div>
+    <div class="rol-card">
+      <strong>Conductor</strong>
+      <span>Solo su app. Entra con su <b>DNI</b> y la contraseña que elige él. No ve el panel de
+        gestión por ninguna ruta.</span>
+    </div>
+  </div>
+  <p class="tenue">
+    El rol se define al crear la cuenta: las de gestión se crean acá, y las de conductor se crean
+    en <a href="/configuracion">Configuración → Conductores</a> (ahí el DNI es el usuario).
+  </p>
+
+  {% if error %}<div class="entrada-error">{{ error }}</div>{% endif %}
+  {% if codigo %}
+  <div class="aviso-codigo">
+    <p><strong>Código de activación de {{ codigo.usuario }}</strong> — este código se ve una sola
+      vez. Entregáselo a la persona (junto con el usuario) y que cree su contraseña en
+      <span class="mono">/entrar/activar</span>.</p>
+    <p class="codigo-grande mono">{{ codigo.codigo }}</p>
+    <p class="tenue">Vence el {{ codigo.vence | hora_local }}. Si se pierde, generá otro con
+      “Código nuevo”.</p>
+  </div>
+  {% elif creado %}
+  <div class="aviso-demo aviso-ok">
+    Se generó un código nuevo para <strong>{{ creado }}</strong>.
+  </div>
+  {% endif %}
+
+  <table class="tabla tabla-usuarios">
+    <thead>
+      <tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Último ingreso</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for c in cuentas %}
+      <tr>
+        <td class="mono">{{ c.usuario }}</td>
+        <td>{{ c.nombre }}</td>
+        <td>
+          {% if c.rol == 'admin' %}<span class="chip ok">Administración</span>
+          {% elif c.rol == 'operaciones' %}<span class="chip">Operaciones</span>
+          {% else %}<span class="chip">Conductor</span>{% endif %}
+        </td>
+        <td>
+          {% if not c.activa %}<span class="chip">inactiva</span>
+          {% elif c.tiene_clave %}<span class="chip ok">puede entrar</span>
+          {% else %}<span class="chip duda">falta crear clave</span>{% endif %}
+        </td>
+        <td class="tenue">{{ c.ultimo_ingreso | hora_local or '—' }}</td>
+        <td class="derecha"><div class="acciones-fila">
+          {% if c.rol != 'conductor' and c.usuario != cuenta.usuario %}
+          <form method="post" action="/usuarios/rol" class="cambiar-rol">
+            <input type="hidden" name="usuario" value="{{ c.usuario }}">
+            <select name="rol">
+              <option value="admin" {{ 'selected' if c.rol == 'admin' }}>Administración</option>
+              <option value="operaciones" {{ 'selected' if c.rol == 'operaciones' }}>Operaciones</option>
+            </select>
+            <button class="boton-secundario" type="submit">Cambiar</button>
+          </form>
+          {% endif %}
+          {% if c.rol == 'conductor' %}
+            {% if c.tiene_clave %}
+            <form method="post" action="/usuarios/reiniciar">
+              <input type="hidden" name="usuario" value="{{ c.usuario }}">
+              <button class="boton-secundario" type="submit">Reiniciar contraseña</button>
+            </form>
+            {% else %}
+            <span class="tenue">todavía no entró</span>
+            {% endif %}
+          {% else %}
+          <form method="post" action="/usuarios/codigo">
+            <input type="hidden" name="usuario" value="{{ c.usuario }}">
+            <button class="boton-secundario" type="submit">Código nuevo</button>
+          </form>
+          {% endif %}
+        </div></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="bloque">
+  <h2>Crear una cuenta de gestión</h2>
+  <form method="post" action="/usuarios" class="ficha">
+    <label><span>Usuario</span>
+      <input name="usuario" placeholder="j.perez" autocapitalize="none" required>
+      <small>Con esto entra. Los conductores no van acá: se cargan en Configuración y usan su DNI.</small></label>
+    <label><span>Nombre y apellido</span><input name="nombre" required placeholder="Juan Pérez"></label>
+    <label><span>Rol</span>
+      <select name="rol">
+        <option value="operaciones">Operaciones (día a día y configuración)</option>
+        <option value="admin">Administración (todo, incluidas las cuentas)</option>
+      </select>
+    </label>
+    <label><span>Cliente</span>
+      <select name="cliente">
+        {% for c in clientes %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}
+      </select>
+    </label>
+    <button class="boton-secundario" type="submit">Crear y generar código</button>
+  </form>
+  <p class="tenue">
+    El código se muestra una sola vez, al crearla. Si se pierde, se genera otro con
+    “Código nuevo”.
+  </p>
+</section>
+
+<section class="bloque">
+  <h2>Últimos movimientos</h2>
+  <p class="tenue">Quién entró, quién cerró un día y quién cambió una clave.</p>
+  <table class="tabla">
+    <thead><tr><th>Cuándo</th><th>Quién</th><th>Qué</th><th>Día</th></tr></thead>
+    <tbody>
+      {% for a in auditoria %}
+      <tr>
+        <td class="mono">{{ a.cuando | hora_local }}</td>
+        <td>{{ a.usuario }}</td>
+        <td>
+          {% if a.accion == 'ingreso' %}entró
+          {% elif a.accion == 'cierre' %}cerró el día
+          {% elif a.accion == 'correccion' %}corrigió un dato
+          {% elif a.accion == 'clave' %}cambió su contraseña
+          {% elif a.accion == 'cuenta' %}creó una cuenta
+          {% else %}{{ a.accion }}{% endif %}
+        </td>
+        <td class="mono">{{ a.dia or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

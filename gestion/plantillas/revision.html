@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block titulo %}Revisar · Rauda{% endblock %}
+{% block contenido %}
+
+<section class="revision">
+  <h1>Qué revisar</h1>
+  <p class="meta">Todo lo que hay, en el orden en que conviene mirarlo. Los datos son de demostración
+    (cliente "Cadena de ejemplo (DEMO)"): sirven para ver cómo se comporta, no son de una operación real.</p>
+
+  <div class="revision-grid">
+    <a class="revision-card" href="/dia?cliente={{ cliente.id }}&fecha={{ dia }}">
+      <span class="paso">1</span>
+      <strong>El día</strong>
+      <span>Una fila por conductor: lo programado, la hora de llegada, vueltas, pedidos, y quién
+        quedó bloqueado y por qué. Arriba, los cinco controles.</span>
+    </a>
+
+    <a class="revision-card" href="/fila?conductor=22&cliente={{ cliente.id }}&fecha={{ fecha_demo }}">
+      <span class="paso">2</span>
+      <strong>La ficha de un conductor</strong>
+      <span>Cada dato con el mensaje del que salió, la conversación al lado, el pago del día y el
+        formulario para corregir a mano (con autor y motivo).</span>
+    </a>
+
+    <a class="revision-card" href="/liquidacion?cliente={{ cliente.id }}&fecha={{ dia }}">
+      <span class="paso">3</span>
+      <strong>La liquidación</strong>
+      <span>Pedidos × tarifa, el SAC sumado, lo bloqueado que no se paga y el cierre del día con
+        quién lo firmó. El descuento por tardanza queda vacío a propósito.</span>
+    </a>
+
+    <a class="revision-card" href="/mapa?cliente={{ cliente.id }}&fecha={{ dia }}">
+      <span class="paso">4</span>
+      <strong>El mapa</strong>
+      <span>Dónde marcó cada conductor y el recorrido que arman sus entregas. Solo administración.</span>
+    </a>
+
+    <a class="revision-card" href="/conductor" target="_blank" rel="noopener">
+      <span class="paso">5</span>
+      <strong>El panel del conductor</strong>
+      <span>Abrilo en el celular. Entra con DNI <span class="mono">70012341</span> y clave
+        <span class="mono">1234</span>. Dos toques: "ya llegué" y "entregué". Funciona sin señal.</span>
+    </a>
+  </div>
+
+  <div class="revision-notas">
+    <h2>Para decirlo tal cual</h2>
+    <ul>
+      <li><strong>El conductor no aprende nada nuevo:</strong> hace lo mismo que hace hoy por
+        WhatsApp, en un botón.</li>
+      <li><strong>Los toques no pagan.</strong> Lo que se cobra es lo que declara en el cierre; los
+        toques son para el mapa y el control.</li>
+      <li><strong>El Excel deja de ser el destino:</strong> el día se cierra en el sistema, con
+        autor y fecha.</li>
+      <li><strong>El mapa no es seguimiento continuo:</strong> dibuja los puntos que el conductor
+        marca. Un vehículo moviéndose pide app nativa.</li>
+      <li><strong>La puerta:</strong> el panel de administración con clave; el del conductor con DNI
+        y PIN. El login real por usuario, con los datos aislados por cliente, va antes de que entre
+        un segundo cliente.</li>
+    </ul>
+  </div>
+</section>
+
+{% endblock %}

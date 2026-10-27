@@ -1,0 +1,10 @@
+[Unit]
+Description=Limpieza semanal de puntos GPS de Rauda
+
+[Timer]
+# Domingos 03:30 de Lima = 08:30 UTC
+OnCalendar=Sun *-*-* 08:30:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

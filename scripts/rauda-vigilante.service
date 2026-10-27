@@ -1,0 +1,8 @@
+[Unit]
+Description=Vigilante de Rauda: si el panel o el tunel se caen, los levanta
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/home/ubuntu/rauda/scripts/vigilante.sh

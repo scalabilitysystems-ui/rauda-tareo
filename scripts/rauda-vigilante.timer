@@ -1,0 +1,9 @@
+[Unit]
+Description=Vigilante de Rauda cada 2 minutos
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=2min
+
+[Install]
+WantedBy=timers.target
